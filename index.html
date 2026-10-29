@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NeuroQuizz Pro — Plataforma de Evaluación Interactiva</title>
+  <meta name="description" content="Plataforma profesional de evaluación interactiva con IA adaptativa, telemetría de aprendizaje y tutor inteligente en tiempo real."/>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+
+  <!-- Phosphor Icons — Professional Icon System -->
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="neuroquizz.css"/>
+
+  <style>
+    /* ── Phosphor icon refinements ─────────────────────── */
+    .ph { font-style: normal; line-height: 1; }
+    /* Force all phosphor icons to inherit color cleanly */
+    [class^="ph-"], [class*=" ph-"] { display: inline-flex; align-items: center; }
+
+    /* Brand logo icon */
+    .brand-logo-svg {
+      width: 18px; height: 18px;
+      color: #fff;
+    }
+
+    /* Icon in topbar user chip */
+    .tb-user i { font-size: 14px; }
+
+    /* Sidebar icon sizing */
+    #sidebar i { font-size: 20px; }
+
+    /* Category icons */
+    .cat-icon i { font-size: 20px; }
+
+    /* Joker button icons */
+    .btn-joker i { font-size: 15px; }
+
+    /* HUD icons */
+    .hud-cell i { font-size: 16px; }
+
+    /* Option button icons */
+    .opt-key { font-size: 11px; }
+
+    /* KPI icons */
+    .kpi-icon i { font-size: 22px; }
+
+    /* Tutor icon */
+    .tutor-icon i { font-size: 18px; }
+
+    /* Ghost/exit buttons */
+    .btn-ghost i, .btn-exit i { font-size: 17px; }
+
+    /* Feedback overlay icons */
+    #feedback-icon { font-size: 40px !important; line-height: 1; }
+
+    /* Trophy */
+    .trophy-block i { font-size: 52px; color: #fff; }
+    .trophy-block .trophy-sub { font-size: 16px; }
+
+    /* Result stats */
+    .res-icon { font-size: 18px; margin-bottom: 6px; }
+
+    /* Tutor close */
+    .tutor-close i { font-size: 17px; }
+
+    /* Footer action buttons */
+    .btn-ghost i { font-size: 16px; }
+
+    /* Login icon */
+    .login-icon-wrap i { font-size: 28px; color: var(--orange-400); position: relative; z-index: 1; }
+
+    /* Brand logo icon */
+    .brand-logo i { font-size: 17px; color: #fff; }
+
+    /* Status dot pulse */
+    @keyframes status-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+      50%      { box-shadow: 0 0 0 4px rgba(34,197,94,0); }
+    }
+    .tb-user-dot { animation: pulse-dot 3s ease-in-out infinite, status-pulse 3s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+
+<!-- ─── Ambient Background ──────────────────────────────── -->
+<div id="bg-ambient">
+  <div class="bg-blob bg-blob-1"></div>
+  <div class="bg-blob bg-blob-2"></div>
+  <div class="bg-blob bg-blob-3"></div>
+</div>
+
+<!-- ─── Top Navigation Bar ──────────────────────────────── -->
+<header id="topbar">
+  <a class="brand" onclick="app.goHome()" href="#">
+    <!-- Custom SVG logo mark -->
+    <div class="brand-logo">
+      <i class="ph-bold ph-brain-circuit" style="font-size:17px;color:#fff;"></i>
+    </div>
+    <div class="brand-text">
+      <span class="brand-name">NeuroQuizz</span>
+      <span class="brand-tagline">Learning Platform</span>
+    </div>
+  </a>
+
+  <div class="topbar-right">
+    <!-- Hidden dummy for JS compatibility -->
+    <button id="darkModeToggle" style="display:none" aria-hidden="true"></button>
+
+    <button id="soundToggle" class="tb-icon-btn" aria-label="Sonido" title="Activar / Silenciar">
+      <i class="ph-bold ph-speaker-high" style="font-size:15px;"></i>
+    </button>
+
+    <select id="languageSelect" class="tb-lang-select" aria-label="Idioma">
+      <option value="es">🇪🇸 ES</option>
+      <option value="en">🇺🇸 EN</option>
+    </select>
+
+    <div class="tb-user">
+      <div class="tb-user-dot"></div>
+      <span id="header-user-name" class="mono">Invitado</span>
+    </div>
+  </div>
+</header>
+
+<!-- ─── Left Sidebar ─────────────────────────────────────── -->
+<nav id="sidebar" aria-label="Navegación principal">
+
+  <button class="sb-icon active" id="sb-home" onclick="app.goHome()" aria-label="Inicio">
+    <i class="ph-bold ph-house-simple"></i>
+    <span class="sb-tooltip" data-i18n="nav_home">Inicio</span>
+  </button>
+
+  <button class="sb-icon" id="sb-stats" onclick="app.showStats()" aria-label="Estadísticas">
+    <i class="ph-bold ph-chart-bar"></i>
+    <span class="sb-tooltip" data-i18n="nav_stats">Estadísticas</span>
+  </button>
+
+  <div class="sb-divider"></div>
+
+  <button class="sb-icon" onclick="app.resetAllData()" aria-label="Reiniciar datos">
+    <i class="ph-bold ph-arrow-counter-clockwise"></i>
+    <span class="sb-tooltip" data-i18n="nav_reset">Reiniciar Datos</span>
+  </button>
+
+  <span class="sb-tele" id="sb-tele-text">0 PARTIDAS</span>
+</nav>
+
+<!-- ─── Main Application Shell ──────────────────────────── -->
+<div id="app-main">
+  <div class="page-wrapper">
+
+    <!-- ════════════════════════════════════════════════
+         SCREEN: WELCOME / LOGIN
+         ════════════════════════════════════════════════ -->
+    <section id="screen-welcome" class="nq-screen in">
+      <div class="welcome-layout">
+
+        <!-- Left: Hero copy -->
+        <div class="hero-left">
+          <span class="status-badge" data-i18n="badge_active">Plataforma Activa v5.0</span>
+
+          <h1 class="hero-heading">
+            <span data-i18n="hero_line1">Domina el arte</span><br/>
+            <span data-i18n="hero_line2">del </span><em class="hl" data-i18n="hero_hl">conocimiento</em>
+          </h1>
+
+          <p class="hero-desc" data-i18n="hero_desc">
+            Evaluación interactiva adaptativa con telemetría cognitiva en tiempo real.
+            Desafía tu mente y mejora tu rendimiento académico con Inteligencia Artificial.
+          </p>
+
+          <!-- Mini stats row -->
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hero-stat-val mono" id="h-stat-games">0</div>
+              <div class="hero-stat-lbl" data-i18n="stat_games">Partidas</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-val mono" id="h-stat-avg">0%</div>
+              <div class="hero-stat-lbl" data-i18n="stat_avg">Promedio</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-val mono" id="h-stat-best">0</div>
+              <div class="hero-stat-lbl" data-i18n="stat_best">Mejor pts.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Login card -->
+        <div class="hero-right">
+          <div class="login-card card-accent-top" style="position:relative">
+
+            <div class="login-icon-area">
+              <div class="login-icon-wrap">
+                <i class="ph-bold ph-fingerprint"></i>
+              </div>
+              <div class="text-center">
+                <div class="login-title" data-i18n="login_title">Acceso al Sistema</div>
+                <div class="login-subtitle mono" data-i18n="login_subtitle">Autenticación requerida</div>
+              </div>
+            </div>
+
+            <div style="height:1px;background:var(--border-subtle);margin-bottom:20px;"></div>
+
+            <label class="nq-label" for="user-name-input" data-i18n="login_label">Nombre de Usuario</label>
+            <input
+              id="user-name-input"
+              class="nq-input"
+              type="text"
+              placeholder="Ingresa tu nombre..."
+              data-i18n-placeholder="login_placeholder"
+              autocomplete="off"
+              maxlength="32"
+            />
+
+            <button class="btn-primary" onclick="app.submitName()">
+              <i class="ph-bold ph-arrow-right" style="font-size:17px;"></i>
+              <span data-i18n="login_btn">Comenzar Desafío</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════
+         SCREEN: CATEGORIES
+         ════════════════════════════════════════════════ -->
+    <section id="screen-categories" class="nq-screen hide">
+
+      <!-- Greeting row -->
+      <div class="greeting-row">
+        <div class="greeting-text" id="greeting-text-el">
+          Hola, <strong id="display-name">Invitado</strong> — <span data-i18n="greeting_select">selecciona una categoría</span>
+        </div>
+        <div class="score-row">
+          <i class="ph-bold ph-trophy" style="font-size:15px;color:var(--orange-400);"></i>
+          <span><span data-i18n="score_best">Mejor</span>: <span class="score-val mono" id="quick-best-score">0</span> pts</span>
+          <span style="color:var(--border-default);padding:0 4px;">|</span>
+          <i class="ph-bold ph-trend-up" style="font-size:15px;color:var(--blue-400);"></i>
+          <span><span data-i18n="score_avg">Prom</span>: <span class="score-val mono" id="quick-avg-score">0</span>%</span>
+        </div>
+      </div>
+
+      <!-- Controls row -->
+      <div class="filters-row">
+        <button class="btn-ghost" onclick="app.goBackToWelcome()">
+          <i class="ph-bold ph-arrow-left"></i>
+          <span data-i18n="btn_back">Volver</span>
+        </button>
+
+        <select id="numQuestionsSelect" class="nq-select" aria-label="Cantidad de preguntas">
+          <option value="10" data-i18n-opt="opt_q10">10 preguntas</option>
+          <option value="20" selected data-i18n-opt="opt_q20">20 preguntas</option>
+          <option value="30" data-i18n-opt="opt_q30">30 preguntas</option>
+        </select>
+
+        <select id="manualLevelSelect" class="nq-select" aria-label="Dificultad">
+          <option value="auto" data-i18n-opt="opt_auto">Adaptativo (IA)</option>
+          <option value="Fácil" data-i18n-opt="opt_easy">Solo Fácil</option>
+          <option value="Normal" data-i18n-opt="opt_normal">Solo Normal</option>
+          <option value="Difícil" data-i18n-opt="opt_hard">Solo Difícil</option>
+        </select>
+      </div>
+
+      <!-- Section heading -->
+      <div class="page-header">
+        <div class="page-eyebrow" data-i18n="cat_eyebrow">Selección de Módulo</div>
+        <div class="page-title"><span data-i18n="cat_title_pre">Elige tu </span><em data-i18n="cat_title_em">categoría</em></div>
+      </div>
+
+      <!-- Categories injected by JS -->
+      <div class="cat-grid" id="categoriesContainer"></div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════════════
+         SCREEN: GAME
+         ════════════════════════════════════════════════ -->
+    <section id="screen-game" class="nq-screen hide">
+
+      <!-- Top game bar -->
+      <div class="game-bar">
+
+        <!-- Exit button -->
+        <button class="btn-exit" onclick="app.confirmExitGame()">
+          <i class="ph-bold ph-sign-out"></i>
+          <span data-i18n="btn_exit">Salir</span>
+        </button>
+
+        <!-- Jokers -->
+        <div class="joker-group">
+          <button id="joker5050" class="btn-joker joker-50" onclick="app.useFiftyFifty()">
+            <i class="ph-bold ph-scales"></i>
+            <span>50/50</span>
+          </button>
+          <button id="jokerAudience" class="btn-joker joker-pub" onclick="app.useAudience()">
+            <i class="ph-bold ph-users-three"></i>
+            <span data-i18n="joker_audience">Público</span>
+          </button>
+          <button id="jokerTutor" class="btn-joker joker-ai" onclick="app.openTutor()">
+            <i class="ph-bold ph-robot"></i>
+            <span data-i18n="joker_tutor">Tutor IA</span>
+          </button>
+        </div>
+
+        <!-- HUD pill -->
+        <div class="game-hud">
+          <div class="hud-cell">
+            <i class="ph-bold ph-star" style="color:var(--orange-400);"></i>
+            <span id="game-score" class="hud-val-score">0</span>
+          </div>
+          <div class="hud-cell">
+            <i class="ph-bold ph-check-circle" style="color:var(--success);"></i>
+            <span id="live-correct" class="hud-val-correct">0</span>
+          </div>
+          <div class="hud-cell">
+            <i class="ph-bold ph-x-circle" style="color:var(--danger);"></i>
+            <span id="live-wrong" class="hud-val-wrong">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-track">
+        <div id="game-progress-fill" class="progress-fill" style="width:0%"></div>
+      </div>
+
+      <!-- Stats panel -->
+      <div class="game-panel" style="margin-bottom:14px;">
+        <div class="panel-cell">
+          <span class="panel-lbl" data-i18n="panel_difficulty">Dificultad</span>
+          <span class="panel-val text-blue mono" id="game-level-indicator">Fácil</span>
+        </div>
+        <div class="panel-center">
+          <span class="panel-lbl" data-i18n="panel_time">Tiempo</span>
+          <div style="margin-top:4px">
+            <svg class="timer-svg" width="60" height="60" viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#f97316"/>
+                  <stop offset="100%" stop-color="#60a5fa"/>
+                </linearGradient>
+              </defs>
+              <circle id="timerTrack" cx="50" cy="50" r="44" fill="none" stroke-width="6"/>
+              <circle id="timerCircle"
+                cx="50" cy="50" r="44" fill="none"
+                stroke-width="6" stroke-linecap="round"
+                stroke-dasharray="276.46" stroke-dashoffset="0"
+                transform="rotate(-90 50 50)"/>
+              <text id="timerText" x="50" y="57" text-anchor="middle"
+                font-size="20" font-weight="700" font-family="'JetBrains Mono',monospace"
+                fill="#f1f5f9">20</text>
+            </svg>
+          </div>
+        </div>
+        <div class="panel-cell" style="align-items:flex-end;text-align:right">
+          <span class="panel-lbl" data-i18n="panel_score">Puntaje</span>
+          <span class="panel-val panel-val-score mono" id="game-score-panel">0</span>
+        </div>
+      </div>
+
+      <!-- Question card -->
+      <div class="q-card" id="question-card-wrapper">
+        <div class="q-num mono" id="question-number">Pregunta 1 de 20</div>
+        <p class="q-text" id="question-text">Cargando pregunta...</p>
+        <div class="options-grid" id="options-container"></div>
+
+        <!-- Feedback overlay -->
+        <div id="feedback-overlay">
+          <div id="feedback-circle">
+            <i id="feedback-icon" class="ph-bold ph-check-circle"></i>
+            <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;" id="feedback-text">¡Correcto!</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════════════
+         SCREEN: RESULTS
+         ════════════════════════════════════════════════ -->
+    <section id="screen-results" class="nq-screen hide" style="text-align:center">
+
+      <div class="results-top">
+        <button class="btn-ghost" onclick="app.goHome()">
+          <i class="ph-bold ph-arrow-left"></i>
+          <span data-i18n="btn_back_home">Volver al inicio</span>
+        </button>
+        <button id="exportTxtBtn" class="btn-ghost" onclick="app.exportToTxt()">
+          <i class="ph-bold ph-download-simple"></i>
+          <span data-i18n="btn_export_txt">Exportar TXT</span>
+        </button>
+      </div>
+
+      <!-- Trophy + message -->
+      <div class="results-center">
+        <div class="trophy-block">
+          <i class="ph-bold ph-trophy"></i>
+          <div class="trophy-sub">🎉</div>
+        </div>
+
+        <div>
+          <h2 class="results-title">
+            <span data-i18n="result_title_pre">¡Desafío completado, </span><strong id="result-name">Usuario</strong><span data-i18n="result_title_post">!</span>
+          </h2>
+          <p class="results-message mono" id="result-message" style="margin-top:8px">
+            Rendimiento excepcional
+          </p>
+        </div>
+      </div>
+
+      <!-- Stats grid -->
+      <div class="results-stats">
+        <div class="res-stat">
+          <div class="res-val green mono" id="result-correct">0</div>
+          <div class="res-lbl" data-i18n="res_correct">Aciertos</div>
+        </div>
+        <div class="res-stat">
+          <div class="res-val red mono" id="result-wrong">0</div>
+          <div class="res-lbl" data-i18n="res_wrong">Errores</div>
+        </div>
+        <div class="res-stat">
+          <div class="res-val mono" id="result-accuracy">0%</div>
+          <div class="res-lbl" data-i18n="res_accuracy">Precisión</div>
+        </div>
+        <div class="res-stat">
+          <div class="res-val blue mono" id="result-score">0</div>
+          <div class="res-lbl" data-i18n="res_score">Puntuación</div>
+        </div>
+      </div>
+
+      <!-- Level row -->
+      <div style="display:flex;justify-content:center;gap:12px;margin-bottom:32px;flex-wrap:wrap;">
+        <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:10px 20px;font-size:12px;color:var(--text-400);display:flex;align-items:center;gap:8px;">
+          <i class="ph-bold ph-lightning" style="color:var(--orange-400);font-size:14px;"></i>
+          <span data-i18n="res_final_level">Nivel Final</span>: <strong class="text-orange mono" id="result-level">Normal</strong>
+        </div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:10px 20px;font-size:12px;color:var(--text-400);display:flex;align-items:center;gap:8px;">
+          <i class="ph-bold ph-game-controller" style="color:var(--blue-400);font-size:14px;"></i>
+          <span data-i18n="res_total_games">Partidas totales</span>: <strong class="text-blue mono" id="result-total-games">0</strong>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn-primary" style="max-width:220px" onclick="app.goHome()">
+          <i class="ph-bold ph-arrows-counter-clockwise" style="font-size:17px;"></i>
+          <span data-i18n="btn_play_again">Jugar de Nuevo</span>
+        </button>
+        <button class="btn-ghost" onclick="app.showStats()">
+          <i class="ph-bold ph-chart-bar"></i>
+          <span data-i18n="btn_see_stats">Ver Estadísticas</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════════════
+         SCREEN: STATISTICS
+         ════════════════════════════════════════════════ -->
+    <section id="screen-statistics" class="nq-screen hide">
+
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:28px;">
+        <div>
+          <div class="page-eyebrow" data-i18n="stats_eyebrow">Historial de Rendimiento</div>
+          <div class="page-title"><span data-i18n="stats_title_pre">Estadísticas de </span><em id="stats-user-name">Usuario</em></div>
+        </div>
+        <button class="btn-ghost" onclick="app.goHome()">
+          <i class="ph-bold ph-arrow-left"></i>
+          <span data-i18n="btn_back">Volver</span>
+        </button>
+      </div>
+
+      <!-- KPI row -->
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-icon blue">
+            <i class="ph-bold ph-game-controller"></i>
+          </div>
+          <div class="kpi-val mono" id="stats-total-games">0</div>
+          <div class="kpi-lbl" data-i18n="kpi_games">Partidas Jugadas</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon orange">
+            <i class="ph-bold ph-trend-up"></i>
+          </div>
+          <div class="kpi-val mono" id="stats-overall-avg">0%</div>
+          <div class="kpi-lbl" data-i18n="kpi_avg">Promedio General</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon warn">
+            <i class="ph-bold ph-medal"></i>
+          </div>
+          <div class="kpi-val mono text-warn" id="stats-best-ever">0</div>
+          <div class="kpi-lbl" data-i18n="kpi_best">Mejor Puntuación</div>
+        </div>
+      </div>
+
+      <!-- Two-column layout -->
+      <div class="stats-cols">
+
+        <!-- History list -->
+        <div class="card" style="padding:20px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--text-400);font-family:'JetBrains Mono',monospace;margin-bottom:16px;display:flex;align-items:center;gap:6px;">
+            <i class="ph-bold ph-clock-counter-clockwise" style="font-size:13px;color:var(--orange-400);"></i>
+            <span data-i18n="hist_title">Registros Históricos</span>
+          </div>
+          <div id="history-container" style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;">
+            <p style="color:var(--text-400);font-size:13px;text-align:center;padding:24px 0;" data-i18n="hist_empty">Sin partidas registradas</p>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card" style="padding:20px;display:flex;flex-direction:column;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--text-400);font-family:'JetBrains Mono',monospace;margin-bottom:16px;display:flex;align-items:center;gap:6px;">
+            <i class="ph-bold ph-chart-line-up" style="font-size:13px;color:var(--blue-400);"></i>
+            <span data-i18n="chart_title">Curva de Aprendizaje — Últimas 5 partidas</span>
+          </div>
+          <div style="flex:1;position:relative;min-height:260px;">
+            <canvas id="progressChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:24px;">
+        <button id="exportHistoryBtn" class="btn-ghost">
+          <i class="ph-bold ph-download-simple"></i>
+          <span data-i18n="btn_download_hist">Descargar Historial</span>
+        </button>
+        <button class="btn-ghost" onclick="app.resetAllData()"
+          style="color:var(--danger);border-color:rgba(239,68,68,0.25)">
+          <i class="ph-bold ph-trash"></i>
+          <span data-i18n="btn_reset_data">Reiniciar Datos</span>
+        </button>
+      </div>
+
+    </section>
+
+  </div><!-- /page-wrapper -->
+</div><!-- /app-main -->
+
+<!-- ─── Site Footer ──────────────────────────────────────── -->
+<footer class="site-footer">
+  <span style="display:flex;align-items:center;gap:6px;">
+    <i class="ph-bold ph-brain-circuit" style="font-size:14px;color:var(--orange-400);"></i>
+    © 2026 NeuroQuizz Pro
+  </span>
+  <div style="display:flex;gap:20px;">
+    <a href="#" data-i18n="footer_terms">Términos</a>
+    <a href="#" data-i18n="footer_privacy">Privacidad</a>
+    <a href="#" data-i18n="footer_support">Soporte</a>
+  </div>
+</footer>
+
+<!-- ─── AI Tutor Drawer ──────────────────────────────────── -->
+<aside id="ai-tutor-drawer" aria-label="Tutor IA" aria-hidden="true">
+
+  <!-- Header -->
+  <div class="tutor-header">
+    <div class="tutor-brand">
+      <div class="tutor-icon">
+        <i class="ph-bold ph-robot"></i>
+      </div>
+      <div>
+        <div class="tutor-name">NeuroAI Tutor</div>
+        <div class="tutor-sub" data-i18n="tutor_sub">Modelo Adaptativo v5</div>
+      </div>
+    </div>
+    <button class="tutor-close" onclick="app.closeTutor()" aria-label="Cerrar tutor">
+      <i class="ph-bold ph-x"></i>
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div class="tutor-body" id="tutor-content-wrapper">
+    <div class="tutor-msg">
+      <div class="tutor-msg-header" id="tutor-header-text">// NeuroAI Tutor inicializado</div>
+      <div id="tutor-content">
+        <p style="font-style:italic;color:var(--text-400)" data-i18n="tutor_ready">
+          El Tutor de IA está listo. Pulsa <strong style="color:var(--blue-400)">Tutor IA</strong>
+          durante una pregunta para recibir una explicación paso a paso.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="tutor-footer">
+    <button id="tutor-delegate-btn" class="btn-delegate" onclick="app.delegateToAI()">
+      <i class="ph-bold ph-magic-wand" style="font-size:15px;"></i>
+      <span data-i18n="tutor_delegate">Delegar a IA</span>
+    </button>
+    <p style="font-size:10px;color:var(--text-400);text-align:center;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;" data-i18n="tutor_delegate_desc">
+      La IA resolverá la pregunta automáticamente
+    </p>
+  </div>
+
+</aside>
+
+<!-- ─── JS ───────────────────────────────────────────────── -->
+<script src="neuroquizz.js"></script>
+
+<!-- Update feedback icon logic to use Phosphor classes -->
+<script>
+  // Patch showFeedback to use Phosphor icons
+  const _origShowFeedback = app.showFeedback.bind(app);
+  app.showFeedback = function(isCorrect, customText) {
+    const overlay = document.getElementById('feedback-overlay');
+    const icon    = document.getElementById('feedback-icon');
+    const text    = document.getElementById('feedback-text');
+    const circle  = document.getElementById('feedback-circle');
+    if (!overlay) return;
+    const t = app.t.bind(app);
+    if (isCorrect) {
+      icon.className = 'ph-bold ph-check-circle';
+      icon.style.color = 'var(--success)';
+      text.innerText = customText || t('feedback_correct');
+      if(circle) circle.style.borderColor = 'rgba(34,197,94,0.4)';
+    } else {
+      icon.className = 'ph-bold ph-x-circle';
+      icon.style.color = 'var(--danger)';
+      text.innerText = customText || t('feedback_wrong');
+      if(circle) circle.style.borderColor = 'rgba(239,68,68,0.4)';
+    }
+    overlay.style.opacity = '1';
+    setTimeout(() => overlay.style.opacity = '0', 1200);
+  };
+
+  // Patch generateCategories to use Phosphor icons and i18n
+  const _origGenCat = app.generateCategories.bind(app);
+  app.generateCategories = function() {
+    const container = document.getElementById('categoriesContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    const lang = this.state.language || 'es';
+    const meta = {
+      math:    {
+        name:  lang==='en' ? 'Mathematics'   : 'Matemáticas',
+        icon:'ph-function',  cls:'cat-math',  deco:'∑',
+        desc:  lang==='en' ? 'Algebra, geometry, numerical logic' : 'Álgebra, geometría, lógica numérica'
+      },
+      culture: {
+        name:  lang==='en' ? 'Culture'        : 'Cultura',
+        icon:'ph-globe',     cls:'cat-cult',  deco:'🌎',
+        desc:  lang==='en' ? 'Venezuela: geography, history and symbols' : 'Venezuela: geografía, historia y símbolos'
+      },
+      history: {
+        name:  lang==='en' ? 'History'        : 'Historia',
+        icon:'ph-book-open', cls:'cat-hist',  deco:'🏛',
+        desc:  lang==='en' ? 'Great events of humanity' : 'Grandes eventos de la humanidad'
+      },
+      logic:   {
+        name:  lang==='en' ? 'Reasoning'      : 'Razonamiento',
+        icon:'ph-brain',     cls:'cat-logic', deco:'⚡',
+        desc:  lang==='en' ? 'Sequences, syllogisms and puzzles' : 'Secuencias, silogismos y puzzles'
+      }
+    };
+    const qLabel = lang==='en' ? 'questions' : 'preguntas';
+    Object.keys(this.questionsBank).forEach(cat => {
+      const m = meta[cat];
+      const btn = document.createElement('button');
+      btn.className = `cat-card ${m.cls}`;
+      btn.setAttribute('aria-label', `${m.name}`);
+      btn.innerHTML = `
+        <span class="cat-deco">${m.deco}</span>
+        <div class="cat-content">
+          <div class="cat-icon">
+            <i class="ph-bold ${m.icon}"></i>
+          </div>
+          <div class="cat-name">${m.name}</div>
+          <div class="cat-desc">${m.desc}</div>
+          <span class="cat-tag">${this.questionsBank[cat].length} ${qLabel}</span>
+        </div>
+      `;
+      btn.onclick = () => app.selectCategory(cat);
+      container.appendChild(btn);
+    });
+  };
+
+  // Patch soundToggle to use Phosphor icons
+  document.getElementById('soundToggle').onclick = () => {
+    app.state.soundEnabled = !app.state.soundEnabled;
+    localStorage.setItem('soundEnabled', app.state.soundEnabled);
+    const btn = document.getElementById('soundToggle');
+    btn.innerHTML = app.state.soundEnabled
+      ? '<i class="ph-bold ph-speaker-high" style="font-size:15px;"></i>'
+      : '<i class="ph-bold ph-speaker-slash" style="font-size:15px;"></i>';
+    if (app.state.soundEnabled) app.playSound('correct');
+  };
+</script>
+
+</body>
+</html>
